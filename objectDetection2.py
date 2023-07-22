@@ -24,13 +24,13 @@ class RootsDataset(Dataset):
         #self.add_class("dataset", 3, "orange")
         
         # define data locations
-        images_dir = dataset_dir + '/images/'
-        annotations_dir = dataset_dir + '/annotations_new/'
+        images_dir = dataset_dir + '\\images\\'
+        annotations_dir = dataset_dir + '\\annotations_new\\'
        
              
 		# find all images
         for filename in listdir(images_dir):
-            #print(filename)
+            print(filename)
 			# extract image id
             image_id = filename[:-4]
 			#print('IMAGE ID: ',image_id)
@@ -149,73 +149,51 @@ class RootsDataset(Dataset):
       #print(boxes)
       masks = zeros([h, w, len(boxes)], dtype='uint8')
       #print(masks.shape)
+      #print(len(boxes))
       class_ids = list()
       for i in range(len(boxes)):
         box = boxes[i]
+        #print('*************************** box*************************',i)
+        #print(box)
         #print(masks[:,:,i].shape,'shape of Mask',i)
-        
         #row_s, row_e = int(box[1]), int(box[3])
         #col_s, col_e = int(box[0]), int(box[2])
         #print(row_s,row_e,col_s,col_e)
-        
         # box[4] will have the name of the class 
         #if (box[4] == 'apple'):
         x_coors=box[0]
         y_coors=box[1]
-        for x,y in zip(x_coors,y_coors):
+        count=-1
+        county=-1
+        for x,y in zip(x_coors,y_coors):         
+          #print(x,y)  
+          #if x is in incraesing order then do masking from previous x to current x 
+          # esle do masking from current x to previous mask
+          #masks[int(round(y)),int(round(x)), i] = 1  
+          if int(round(x_coors[1]))>= int(round(x_coors[0])): # For x is in  increasing order , if this cond got true it wont be going in else part
+            #print('hello!!  up')  
+            if count==-1:  
+              masks[int(round(y_coors[county+1])):int(round(y)),int(round(x_coors[count+1])):int(round(x)), i]=1 
+              count==0
+              county==0
+            else:  
+              masks[int(round(y_coors[county])):int(round(y)),int(round(x_coors[count])):int(round(x)), i]=1
+              count+=1 
+              county+=1
             
-           masks[int(round(y)),int(round(x)), i] = 1
+          else: # for x is in decreasing order 
+            #print('hello!! down')  
+            if count==-1:   
+               masks[int(round(y_coors[county+1])):int(round(y)),int(round(x)):int(round(x_coors[count+1])), i]=1 
+               count==0
+               county==0
+            else:  
+               masks[int(round(y_coors[county])):int(round(y)),int(round(x)):int(round(x_coors[count])), i]=1   
+               count+=1   
+               county+=1  
         class_ids.append(self.class_names.index('primary_root'))
-        #elif(box[4] == 'banana'):
-        #    masks[row_s:row_e, col_s:col_e, i] = 2
-        #    class_ids.append(self.class_names.index('banana')) 
-        #elif(box[4] == 'orange'):
-        #    masks[row_s:row_e, col_s:col_e, i] = 3
-        #    class_ids.append(self.class_names.index('orange'))
-      #for j in range(len(boxes[0])):
-      #  mask = np.zeros([int(boxes[0][j][7]),int(boxes[0][j][6])], dtype='uint8')
-      #  #print(mask)
-      #  masks.append(mask)
-      #  mask=[]
-      #print((masks[0][0,0]))  
-      #masks = np.zeros([len(boxes[0][0]),h,w],dtype='uint8')
-      #class_ids = list()
-      #for i in range(len(boxes)):
-      #    box=boxes[i]
-      #    x_coors = boxes[0][i][0]
-      #    y_coors= boxes[0][i][1]
-      #    print(x_coors)
-      #    print(y_coors)
-      #    for x,y in zip(x_coors,y_coors):
-      #       #print(x)
-      #       #print(y)
-      #       #print(min(x_coors))
-      #       #print(min(y_coors))
-      #       x_=int(round(x-min(x_coors)))
-      #       y_=int(round(y-min(y_coors)))
-      #       print(x_)
-      #       print(y_)
-      #       #print(int(round(x_)))
-      #       #print(int(round(y_)))
-      #       if x_ == int(max(x_coors)-min(x_coors)) and   y_ ==int(max(y_coors)-min(y_coors)):
-      #          masks[i][y_-1,x_-1 ]=1
-      #          class_ids.append(self.class_names.index("Primary_Root"))
-      #          break
-      #       elif x_ == int(max(x_coors)-min(x_coors)):#  y_ ==int(max(y_coors)-min(y_coors)):
-      #          masks[i][y_,x_-1 ]=1
-      #          class_ids.append(self.class_names.index("Primary_Root"))
-      #          
-      #       elif y_ == int(max(y_coors)-min(y_coors)):
-      #           masks[i][y_-1,x_ ]=1
-      #           class_ids.append(self.class_names.index("Primary_Root"))
-      #           
-      #       else:
-      #          masks[i][y_,x_] = 1
-      #          class_ids.append(self.class_names.index("Primary_Root"))
-      #    #row_s, row_e = box[1], box[3]
-          #col_s, col_e = box[0], box[2]
-       #   print('*******Mask',i+1,' Formed***************')
-          #class_ids.append(self.class_names.index('kangaroo'))
+        
+        #print(masks[:,:,i].shape,'shape of Mask',i)
       return masks, asarray(class_ids, dtype='int32')
     
         
@@ -225,7 +203,7 @@ class RootsDataset(Dataset):
         info = self.image_info[image_id]
         return info['path']
 
-dataset_dir='Roots'
+dataset_dir='D:\Mayank\BTP_2.0\Object_detection\Root_detection\Roots'
 
 train_set = RootsDataset()
 train_set.load_dataset(dataset_dir, is_train=True)
@@ -245,10 +223,10 @@ import cv2
 from PIL import Image 
 import PIL 
 #folder=r"D:\Mayank\BTP_2.0\Object_detection\Root_detection\Roots\masks"
-image_id = 1200
+image_id = 3
 #for image_id in range(len(train_set.image_ids)):
 #image_id = 155
-#print(train_set.image_info[image_id])
+print(train_set.image_info[image_id])
 id=int(train_set.image_info[image_id]['id']) 
 #print(id)
 ## load the image
@@ -270,7 +248,7 @@ display_instances(image, bbox, mask, class_ids, train_set.class_names)
 
 
 
-# define a configuration for the model
+## define a configuration for the model
 class RootsConfig(Config):
    NAME = "Roots_cfg"
    GPU_COUNT = 1
@@ -286,11 +264,11 @@ class RootsConfig(Config):
 config = RootsConfig()
 config.display()
 print('config class made')
-#import os
-#ROOT_DIR = os.path.abspath("./")
-## Directory to save logs and trained model
-#DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
-
+import os
+ROOT_DIR = os.path.abspath("./")
+# Directory to save logs and trained model
+DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs_2")
+print(DEFAULT_LOGS_DIR)
 ###############
 print('model making')
 # define the model
@@ -301,16 +279,15 @@ model.load_weights(r"D:\Mayank\BTP_2.0\Object_detection_TF_2-20230707T165828Z-00
 import tensorflow as tf
 print('model training started')
 # train weights (output layers or 'heads')
-model.train(train_set, test_set, learning_rate=config.LEARNING_RATE, epochs=1, layers='heads')
-model_path = 'root_mask_rcnn_trained.h5'
-model.keras_model.save_weights(model_path)
+model.train(train_set, test_set, learning_rate=config.LEARNING_RATE, epochs=20, layers='heads')
+#model_path = 'root_mask_rcnn_trained.h5'
+#model.keras_model.save_weights(model_path)
 print('model trained')
 ##########################################
 #
 ##INFERENCE
-#
-####################################################
 
+###################################################
 #from matplotlib.patches import Rectangle
 #
 #
