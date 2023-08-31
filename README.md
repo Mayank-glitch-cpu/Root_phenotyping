@@ -252,12 +252,12 @@ We found that smaller learning rates converge faster anyway so we go with that.
 Use this bibtex to cite this repository:
 ```
 @misc{matterport_maskrcnn_2017,
-  title={Mask R-CNN for object detection and instance segmentation on Keras and TensorFlow},
-  author={Waleed Abdulla},
-  year={2017},
+  title={Mask R-CNN for Root detection and instance segmentation on Keras and TensorFlow},
+  author={Mayank Vyas},
+  year={2023},
   publisher={Github},
   journal={GitHub repository},
-  howpublished={\url{https://github.com/matterport/Mask_RCNN}},
+  howpublished={\url{https://github.com/Mayank-glitch-cpu/Root_phenotyping/tree/main}},
 }
 ```
 
