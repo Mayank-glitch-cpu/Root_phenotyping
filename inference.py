@@ -36,6 +36,8 @@ from mrcnn.utils import compute_ap
 from PIL import Image
 from mrcnn.config import Config
 from mrcnn.model import MaskRCNN
+import skimage
+import cv2
 
 #import re
 
@@ -46,8 +48,6 @@ class RootsDataset(Dataset):
     def load_dataset(self, dataset_dir, is_train=True):
         # define classes
         self.add_class("dataset", 1, "primary_root")
-        #self.add_class("dataset", 2, "banana")
-        #self.add_class("dataset", 3, "orange")
 
         # define data locations
         images_dir = dataset_dir + '/images/'
@@ -56,11 +56,7 @@ class RootsDataset(Dataset):
 
 		# find all images
         for filename in listdir(images_dir):
-            #print(filename)
-			# extract image id
             image_id = filename[:-4]
-			#print('IMAGE ID: ',image_id)
-
 			# skip all images after 3525 if we are building the train set
             if is_train and int(image_id) >= 3800:
                 continue
@@ -72,6 +68,14 @@ class RootsDataset(Dataset):
 			# add to dataset
             self.add_image('dataset', image_id=image_id, path=img_path, annotation=ann_path, class_ids = [1])
 
+class PredictionConfig(Config):
+	# define the name of the configuration
+	NAME = "roots_cfg"
+	# number of classes (background + 3 roots)
+	NUM_CLASSES = 1 + 1
+	# simplify GPU config
+	GPU_COUNT = 1
+	IMAGES_PER_GPU = 1
 
 dataset_dir='D:\Mayank\BTP_2.0\Object_detection\Root_detection\Roots'
 # test/val set
@@ -84,20 +88,8 @@ image_id=3000
 print(test_set.image_info[image_id]['path'])
 # load the masks and the class ids
 mask, class_ids = test_set.load_mask(image_id)
-#print(mask.shape[0],class_ids)
 # extract bounding boxes from the masks
 bbox = extract_bboxes(mask)
-# define the prediction configuration
-class PredictionConfig(Config):
-	# define the name of the configuration
-	NAME = "roots_cfg"
-	# number of classes (background + 3 roots)
-	NUM_CLASSES = 1 + 1
-	# simplify GPU config
-	GPU_COUNT = 1
-	IMAGES_PER_GPU = 1
- 
-
 CLASS_NAMES=['primary_root']
 # create config
 cfg = PredictionConfig()
@@ -108,23 +100,6 @@ model.load_weights('logs\mask_rcnn_roots_cfg_0005.h5', by_name=True)
 
 
 #Test on a few images
-import skimage
-import cv2
-#Test on a single image
-
-#root_img = skimage.io.imread("datasets/renamed_to_numbers/images/184.jpg") #Try 028, 120, 222, 171
-
-#Download a new image for testing...
-#https://c2.peakpx.com/wallpaper/603/971/645/root-root-bowl-roots-apple-wallpaper-preview.jpg
-
-#for taking out a image from test set 
-#root_img = skimage.io.imread(test_set.image_info[image_id]['path'])
-
-# for inferencing for gray images 
-
-#gray = skimage.io.imread(r"C:\Users\LAB-502-08\Desktop\Rootimages_13092021\20210820\IMG_9970.JPG",0)
-#root_img = cv2.cvtColor(gray,cv2.COLOR_GRAY2RGB)
-
 #for normal rgb image rendering
 root_img = skimage.io.imread(r"C:\Users\LAB-502-08\Desktop\IMG_9972.JPG")
 r = model.detect([root_img])[0] 
