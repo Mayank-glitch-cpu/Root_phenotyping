@@ -1,3 +1,14 @@
 # Root Images directory
 Root Images/
 MaskRoot/
+
+# adding virtual env folder
+venv/
+__pycache__/
+
+# log files
+logs/
+debug.log
+
+plantimages_dataset.zip
+mrcnn/mask_rcnn_coco.h5

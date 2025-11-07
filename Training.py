@@ -175,13 +175,24 @@ class RootsDataset(Dataset):
 class RootsConfig(Config):
    NAME = "Roots_cfg"
    GPU_COUNT = 1
-   IMAGES_PER_GPU = 1
+   IMAGES_PER_GPU = 4
    # define the name of the configuration
    # number of classes (background + roots)
    NUM_CLASSES = 1 + 1
    # number of training steps per epoch
    STEPS_PER_EPOCH = 3796
    VALIDATION_STEPS= 120
+
+   # Reduce image dimensions if possible without losing important details
+   IMAGE_MIN_DIM = 512
+   IMAGE_MAX_DIM = 512
+   
+   # Use mini-masks to reduce memory usage
+   USE_MINI_MASK = True
+   MINI_MASK_SHAPE = (56, 56)
+   
+   # Reduce number of ROIs processed simultaneously
+   TRAIN_ROIS_PER_IMAGE = 100
 
 # Set dataset directory - update this path to match your Root Images directory
 ROOT_DIR = os.path.abspath("./")

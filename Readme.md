@@ -9,6 +9,40 @@ This project is part of my **Bachelor's Research Thesis**, aiming to detect and 
 - ✅ Transfer learning on COCO pre-trained weights
 - ✅ Evaluation using mAP, Precision, Recall
 
+## 🛠️ Setup and Installation
+
+### 1. Create Virtual Environment
+```bash
+conda create -n root_detection python=3.7
+conda activate root_detection
+```
+
+### 2. Install Requirements
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Download Root Dataset
+```bash
+# Download the root dataset
+wget https://plantimages.nottingham.ac.uk/datasets/TwMTc5BnBEcjUh2TLk4ESjFSyMe7eQc9wfsyxhrs.zip
+# Unzip and place in Root Images folder
+unzip TwMTc5BnBEcjUh2TLk4ESjFSyMe7eQc9wfsyxhrs.zip -d "Root Images"
+```
+
+### 4. Download COCO Weights
+```bash
+# Download COCO pre-trained weights
+wget https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5
+# Move to mrcnn directory
+mv mask_rcnn_coco.h5 mrcnn/
+```
+
+### 5. Run Training
+```bash
+python Training.py
+```
+
 ---
 
 ## 📁 Directory Structure
@@ -16,10 +50,11 @@ This project is part of my **Bachelor's Research Thesis**, aiming to detect and 
 Root_Detection_Project/
 │
 ├── mrcnn/                        # Modified MRCNN (TF2-compatible)
+│   └── mask_rcnn_coco.h5        # Pre-trained COCO weights
+├── Root Images/                  # Root dataset directory
 ├── Training.py                   # Custom training pipeline
 ├── Inference.py                  # Inference and evaluation code
 ├── root_mask_rcnn_trained.h5     # Saved trained weights
-├── mask_rcnn_coco.h5             # Pre-trained COCO weights
 └── requirements.txt              # Dependencies
 ```
 ---
@@ -42,20 +77,6 @@ Key Components:
 * RootsConfig: Custom training config for 1 root class
 * Mask Generation: Uses polygon fill logic for segmenting roots
 
-To Train:
-1. Set your image/annotation path:
-```python 
- dataset_dir = 'path/to/your/Root_dataset' 
- ```
-
-2. Run training:
-```python 
-Training.py
-```
-* Loads COCO weights
-* Fine-tunes heads on primary root
-* Saves final weights to: `root_mask_rcnn_trained.h5`
-
 ### 🔍 Inference Pipeline (Inference.py)
 Performs:
 * Detection using trained weights
@@ -65,23 +86,9 @@ Performs:
     * Class labels and confidence
 * Evaluation using mAP
 
-To Run: `Inference.py`
-
-* Output is visualized using matplotlib
-* `compute_ap()` is used to calculate:
-    * Mean Average Precision (mAP)
-    * Precision
-    * Recall
-    * Overlaps (IoU)
-
-
-Install the requirements via: `pip install -r requirements.txt`
-
 ### 📝 Citation
 If this work helped you, please cite:
 ```bibtex
-Copy
-Edit
 @misc{vyas_rootdetection_2023,
   title={Root Detection and Segmentation using Mask R-CNN in TensorFlow 2.0},
   author={Mayank Vyas},
