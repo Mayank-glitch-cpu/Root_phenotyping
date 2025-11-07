@@ -2,6 +2,7 @@ protobuf==3.20.0
 tensorflow-gpu==2.4.1
 keras==2.4.3
 numpy==1.19.2
+pandas==1.1.5
 scipy==1.4.1
 Pillow==8.4.0
 Cython==0.29.36

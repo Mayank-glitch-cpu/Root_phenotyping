@@ -1,0 +1,72 @@
+{
+  "9968": {
+    "num_images": 15,
+    "total_roots_detected": 64,
+    "mean_roots_per_image": 4.266666666666667,
+    "total_length_pixels": 4779.3203435596515,
+    "mean_confidence": 0.8853322784105937
+  },
+  "9971": {
+    "num_images": 16,
+    "total_roots_detected": 50,
+    "mean_roots_per_image": 3.125,
+    "total_length_pixels": 2605.412480458824,
+    "mean_confidence": 0.8677203953266144
+  },
+  "9973": {
+    "num_images": 14,
+    "total_roots_detected": 46,
+    "mean_roots_per_image": 3.2857142857142856,
+    "total_length_pixels": 3684.002450978559,
+    "mean_confidence": 0.8760129468781608
+  },
+  "9975": {
+    "num_images": 15,
+    "total_roots_detected": 54,
+    "mean_roots_per_image": 3.6,
+    "total_length_pixels": 3600.369983346705,
+    "mean_confidence": 0.8935383598009745
+  },
+  "9976": {
+    "num_images": 15,
+    "total_roots_detected": 56,
+    "mean_roots_per_image": 3.7333333333333334,
+    "total_length_pixels": 3286.948627109397,
+    "mean_confidence": 0.8810579737027486
+  },
+  "9985": {
+    "num_images": 14,
+    "total_roots_detected": 50,
+    "mean_roots_per_image": 3.5714285714285716,
+    "total_length_pixels": 2702.130301252415,
+    "mean_confidence": 0.9106345772743225
+  },
+  "9988": {
+    "num_images": 15,
+    "total_roots_detected": 46,
+    "mean_roots_per_image": 3.066666666666667,
+    "total_length_pixels": 4865.1984104714475,
+    "mean_confidence": 0.8945858478546143
+  },
+  "9991": {
+    "num_images": 14,
+    "total_roots_detected": 38,
+    "mean_roots_per_image": 2.7142857142857144,
+    "total_length_pixels": 3461.149637236173,
+    "mean_confidence": 0.9062515624931881
+  },
+  "9996": {
+    "num_images": 14,
+    "total_roots_detected": 49,
+    "mean_roots_per_image": 3.5,
+    "total_length_pixels": 2530.667314454762,
+    "mean_confidence": 0.861131991658892
+  },
+  "9997": {
+    "num_images": 14,
+    "total_roots_detected": 41,
+    "mean_roots_per_image": 2.9285714285714284,
+    "total_length_pixels": 2456.365799264597,
+    "mean_confidence": 0.8629590613501412
+  }
+}
