@@ -29,6 +29,8 @@ from skimage.measure import find_contours
 import warnings
 import json
 import pandas as pd
+import argparse
+import sys
 
 # Suppress warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -122,6 +124,19 @@ print("="*80)
 print("ROOT PHENOTYPING INFERENCE")
 print("="*80)
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='Root Phenotyping Inference')
+parser.add_argument('--test_dir', type=str, default='MaskRoot/Test_files/Root_files',
+                    help='Directory containing test images (default: MaskRoot/Test_files/Root_files)')
+parser.add_argument('--model_path', type=str, default='root_mask_rcnn_trained.h5',
+                    help='Path to trained model weights (default: root_mask_rcnn_trained.h5)')
+parser.add_argument('--output_dir', type=str, default='inference_results',
+                    help='Directory to save inference results (default: inference_results)')
+parser.add_argument('--recursive', action='store_true',
+                    help='Process subdirectories recursively')
+
+args = parser.parse_args()
+
 # Create config
 cfg = PredictionConfig()
 
@@ -129,40 +144,62 @@ cfg = PredictionConfig()
 print("\nLoading model...")
 model = MaskRCNN(mode='inference', model_dir='logs', config=cfg)
 
-model_path = os.path.join(ROOT_DIR, 'root_mask_rcnn_trained.h5')
+model_path = os.path.join(ROOT_DIR, args.model_path)
 if not os.path.exists(model_path):
     print(f"ERROR: Model weights not found at {model_path}")
-    exit()
+    sys.exit(1)
 
 model.load_weights(model_path, by_name=True)
 print("Model loaded successfully!")
 
 # Process test directories
-test_root = os.path.join(ROOT_DIR, 'MaskRoot/Test_files/Root_files')
+test_root = os.path.join(ROOT_DIR, args.test_dir)
 print(f"\nScanning test directory: {test_root}")
 
 if not os.path.exists(test_root):
     print(f"ERROR: Test directory not found: {test_root}")
-    exit()
+    sys.exit(1)
 
 # Create output directory
-output_root = os.path.join(ROOT_DIR, 'inference_results')
+output_root = os.path.join(ROOT_DIR, args.output_dir)
 os.makedirs(output_root, exist_ok=True)
 
 # Collect all results
 all_results = []
 summary_by_directory = {}
 
-# Process each subdirectory
-subdirs = sorted([d for d in listdir(test_root) if os.path.isdir(os.path.join(test_root, d))])
-print(f"Found {len(subdirs)} subdirectories to process\n")
+# Check if test_root is a directory with subdirectories or just contains images
+is_flat_structure = False
+if args.recursive:
+    # Process subdirectories
+    subdirs = sorted([d for d in listdir(test_root) if os.path.isdir(os.path.join(test_root, d))])
+    if len(subdirs) == 0:
+        # No subdirectories, treat as flat structure
+        is_flat_structure = True
+        subdirs = ['.']
+else:
+    # Process only top-level directory
+    is_flat_structure = True
+    subdirs = ['.']
+
+print(f"Processing mode: {'Flat structure' if is_flat_structure else 'Recursive subdirectories'}")
+print(f"Found {len(subdirs)} {'directory' if is_flat_structure else 'subdirectories'} to process\n")
 
 for subdir in subdirs:
-    subdir_path = os.path.join(test_root, subdir)
-    print(f"\nProcessing directory: {subdir}")
+    if is_flat_structure:
+        subdir_path = test_root
+        display_name = os.path.basename(test_root)
+    else:
+        subdir_path = os.path.join(test_root, subdir)
+        display_name = subdir
+    
+    print(f"\nProcessing directory: {display_name}")
     
     # Create output directory for this subdir
-    output_dir = os.path.join(output_root, subdir)
+    if is_flat_structure:
+        output_dir = output_root
+    else:
+        output_dir = os.path.join(output_root, subdir)
     os.makedirs(output_dir, exist_ok=True)
     
     # Find all image files (both .jpg and .JPG)
@@ -182,7 +219,7 @@ for subdir in subdirs:
         
         try:
             result = process_image(model, img_path, output_dir, img_file)
-            result['directory'] = subdir
+            result['directory'] = display_name
             dir_results.append(result)
             all_results.append(result)
         except Exception as e:
@@ -191,7 +228,7 @@ for subdir in subdirs:
     
     # Save directory summary
     if dir_results:
-        summary_by_directory[subdir] = {
+        summary_by_directory[display_name] = {
             'num_images': len(dir_results),
             'total_roots_detected': sum(r['num_roots_detected'] for r in dir_results),
             'mean_roots_per_image': np.mean([r['num_roots_detected'] for r in dir_results]),
@@ -201,7 +238,8 @@ for subdir in subdirs:
         
         # Save detailed results for this directory
         df_dir = pd.DataFrame(dir_results)
-        csv_path = os.path.join(output_dir, f'{subdir}_results.csv')
+        csv_filename = f'{display_name}_results.csv' if not is_flat_structure else 'results.csv'
+        csv_path = os.path.join(output_dir, csv_filename)
         df_dir.to_csv(csv_path, index=False)
         print(f"  Results saved to: {csv_path}")
 

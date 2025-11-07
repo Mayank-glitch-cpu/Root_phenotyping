@@ -1,0 +1,61 @@
+# Dockerfile for Inference Root Phenotyping Model
+# Based on Python 3.7 with optional CUDA support
+
+FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CONDA_DIR=/opt/conda
+ENV PATH=$CONDA_DIR/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+ENV TF_FORCE_GPU_ALLOW_GROWTH=true
+
+# Set working directory
+WORKDIR /workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py37_23.3.1-0-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+    $CONDA_DIR/bin/conda clean -a -y
+
+# Create conda environment with Python 3.7
+RUN conda create -n root_detection python=3.7 -y && \
+    conda clean -a -y
+
+# Activate conda environment
+SHELL ["conda", "run", "-n", "root_detection", "/bin/bash", "-c"]
+
+# Copy requirements file
+COPY requirements.txt /workspace/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY mrcnn/ /workspace/mrcnn/
+COPY configs/ /workspace/configs/
+COPY inference.py /workspace/
+
+# Create directories for outputs
+RUN mkdir -p /workspace/inference_results /workspace/test_images /workspace/logs
+
+# Set the entrypoint to use conda environment
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "root_detection"]
+
+# Default command: run inference
+CMD ["python", "inference.py"]

@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Training Service
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    image: root-phenotyping:train
+    container_name: root-phenotyping-train
+    runtime: nvidia  # For GPU support
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+    volumes:
+      # Mount logs directory to persist training logs and checkpoints
+      - ./logs:/workspace/logs
+      # Mount Root Images directory if you want to use existing dataset
+      - ./Root Images:/workspace/Root Images
+      # Mount trained model output
+      - ./models:/workspace/models
+    command: >
+      bash -c "
+      if [ ! -d '/workspace/Root Images' ] || [ -z \"$$(ls -A '/workspace/Root Images')\" ]; then
+        /workspace/download_dataset.sh
+      else
+        echo 'Dataset already exists, skipping download...'
+      fi &&
+      python Training.py &&
+      cp root_mask_rcnn_trained.h5 /workspace/models/ || true
+      "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # Inference Service
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference
+    image: root-phenotyping:inference
+    container_name: root-phenotyping-inference
+    runtime: nvidia  # For GPU support (optional for inference)
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - TF_FORCE_GPU_ALLOW_GROWTH=true
+    volumes:
+      # Mount test images directory
+      - ./test_images:/workspace/test_images
+      # Mount trained model
+      - ./models:/workspace/models
+      # Mount inference results
+      - ./inference_results:/workspace/inference_results
+      # Mount logs directory
+      - ./logs:/workspace/logs
+    command: >
+      bash -c "
+      if [ -f /workspace/models/root_mask_rcnn_trained.h5 ]; then
+        cp /workspace/models/root_mask_rcnn_trained.h5 /workspace/
+        python inference.py --test_dir test_images --output_dir inference_results
+      else
+        echo 'ERROR: Trained model not found at /workspace/models/root_mask_rcnn_trained.h5'
+        echo 'Please run training first or provide a trained model.'
+        exit 1
+      fi
+      "
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  default:
+    name: root-phenotyping-network

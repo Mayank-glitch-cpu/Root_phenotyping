@@ -1,0 +1,80 @@
+# Dockerfile for Training Root Phenotyping Model
+# Based on Python 3.7 with CUDA support for GPU training
+
+FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CONDA_DIR=/opt/conda
+ENV PATH=$CONDA_DIR/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+ENV TF_FORCE_GPU_ALLOW_GROWTH=true
+
+# Set working directory
+WORKDIR /workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    unzip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py37_23.3.1-0-Linux-x86_64.sh -O ~/miniconda.sh && \
+    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+    $CONDA_DIR/bin/conda clean -a -y
+
+# Create conda environment with Python 3.7
+RUN conda create -n root_detection python=3.7 -y && \
+    conda clean -a -y
+
+# Activate conda environment
+SHELL ["conda", "run", "-n", "root_detection", "/bin/bash", "-c"]
+
+# Copy requirements file
+COPY requirements.txt /workspace/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY mrcnn/ /workspace/mrcnn/
+COPY configs/ /workspace/configs/
+COPY Training.py /workspace/
+COPY download_dataset.sh /workspace/
+
+# Make download script executable
+RUN chmod +x /workspace/download_dataset.sh
+
+# Create directories for data and outputs
+RUN mkdir -p /workspace/logs /workspace/"Root Images"
+
+# Download dataset script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Downloading root dataset..."\n\
+wget -q --show-progress https://plantimages.nottingham.ac.uk/datasets/TwMTc5BnBEcjUh2TLk4ESjFSyMe7eQc9wfsyxhrs.zip -O /tmp/dataset.zip\n\
+echo "Extracting dataset..."\n\
+unzip -q /tmp/dataset.zip -d /workspace/"Root Images"/\n\
+rm /tmp/dataset.zip\n\
+echo "Dataset downloaded and extracted successfully!"\n\
+' > /workspace/download_dataset.sh && chmod +x /workspace/download_dataset.sh
+
+# Download COCO weights
+RUN wget --quiet https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5 -O /workspace/mrcnn/mask_rcnn_coco.h5
+
+# Set the entrypoint to use conda environment
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "root_detection"]
+
+# Default command: download dataset and train
+CMD ["/bin/bash", "-c", "/workspace/download_dataset.sh && python Training.py"]
