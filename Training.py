@@ -16,6 +16,14 @@ import PIL
 import re
 import os
 import tensorflow as tf
+import warnings
+from skimage.transform import resize
+
+# Suppress the specific FutureWarning about bool interpolation
+warnings.filterwarnings('ignore', category=FutureWarning, message='.*bool.*Interpolation.*')
+
+print("TensorFlow version:", tf.__version__)
+print("GPUs Available:", tf.config.list_physical_devices('GPU'))
 
 # class that defines and loads the root dataset
 class RootsDataset(Dataset):
@@ -171,28 +179,33 @@ class RootsDataset(Dataset):
         info = self.image_info[image_id]
         return info['path']
 
+    def resize_mask(self, mask, output_shape):
+        """Resize mask with proper interpolation for bool dtype"""
+        return resize(mask, output_shape, order=0, mode='constant', 
+                      preserve_range=True, anti_aliasing=False).astype(bool)
+
 ## define a configuration for the model
 class RootsConfig(Config):
    NAME = "Roots_cfg"
    GPU_COUNT = 1
-   IMAGES_PER_GPU = 4
-   # define the name of the configuration
-   # number of classes (background + roots)
+   IMAGES_PER_GPU = 16  # Your A100 can handle more - try 8-16
    NUM_CLASSES = 1 + 1
-   # number of training steps per epoch
-   STEPS_PER_EPOCH = 3796
-   VALIDATION_STEPS= 120
-
-   # Reduce image dimensions if possible without losing important details
+   
+   # CRITICAL: Reduce steps per epoch dramatically
+   STEPS_PER_EPOCH = 100  # Start with 100 steps per epoch
+   VALIDATION_STEPS = 10   # Reduce validation steps
+   
    IMAGE_MIN_DIM = 512
    IMAGE_MAX_DIM = 512
    
-   # Use mini-masks to reduce memory usage
    USE_MINI_MASK = True
    MINI_MASK_SHAPE = (56, 56)
    
-   # Reduce number of ROIs processed simultaneously
    TRAIN_ROIS_PER_IMAGE = 100
+   
+   # Add these optimizations
+   RPN_TRAIN_ANCHORS_PER_IMAGE = 128  # Reduce from default 256
+   MAX_GT_INSTANCES = 50  # Reduce if you don't have many roots per image
 
 # Set dataset directory - update this path to match your Root Images directory
 ROOT_DIR = os.path.abspath("./")
@@ -227,11 +240,19 @@ print(f"Validation set: {len(test_set.image_ids)} images")
 
 # prepare config
 config = RootsConfig()
-# Update STEPS_PER_EPOCH based on actual training set size
-if len(train_set.image_ids) > 0:
-    config.STEPS_PER_EPOCH = len(train_set.image_ids)
+
+# CRITICAL: Calculate optimal steps based on batch size
+batch_size = config.IMAGES_PER_GPU * config.GPU_COUNT
+steps_per_epoch = len(train_set.image_ids) // batch_size
+config.STEPS_PER_EPOCH = steps_per_epoch  # This should be ~949 for 3796 images with batch=4
+
 if len(test_set.image_ids) > 0:
-    config.VALIDATION_STEPS = max(1, len(test_set.image_ids) // 10)
+    val_steps = len(test_set.image_ids) // batch_size
+    config.VALIDATION_STEPS = max(1, val_steps)
+
+print(f"Training: {len(train_set.image_ids)} images, {steps_per_epoch} steps per epoch")
+print(f"Validation: {len(test_set.image_ids)} images, {config.VALIDATION_STEPS} steps")
+
 config.display()
 print('Config class created')
 
@@ -245,23 +266,31 @@ print('Creating model...')
 # define the model
 model = MaskRCNN(mode='training', model_dir=DEFAULT_LOGS_DIR, config=config)
 
-# Load COCO weights - you may need to download this file
-# The weights file should be placed in the mrcnn directory or update the path below
-coco_weights_path = os.path.join(ROOT_DIR, "mrcnn", "mask_rcnn_coco.h5")
-if not os.path.exists(coco_weights_path):
-    # Try alternative location
-    coco_weights_path = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
+# Try to find and load the last checkpoint
+try:
+    # Find the last trained model
+    model_path = model.find_last()
+    print(f'Loading weights from last checkpoint: {model_path}')
+    model.load_weights(model_path, by_name=True)
+    print('Checkpoint loaded successfully')
+except Exception as e:
+    print(f'No previous checkpoint found or error loading: {e}')
+    print('Starting from COCO pre-trained weights...')
+    
+    # Load COCO weights - you may need to download this file
+    # The weights file should be placed in the mrcnn directory or update the path below
+    coco_weights_path = os.path.join(ROOT_DIR, "mrcnn", "mask_rcnn_coco.h5")
     if not os.path.exists(coco_weights_path):
-        print(f"Warning: COCO weights file not found at {coco_weights_path}")
-        print("Please download mask_rcnn_coco.h5 and place it in the project directory")
-        print("Download from: https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5")
-        # You can uncomment the following to download automatically:
-        # from mrcnn.utils import download_trained_weights
-        # download_trained_weights(coco_weights_path)
-else:
-    print(f'Loading COCO weights from {coco_weights_path}...')
-    model.load_weights(coco_weights_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-    print('COCO weights loaded')
+        # Try alternative location
+        coco_weights_path = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
+        if not os.path.exists(coco_weights_path):
+            print(f"Warning: COCO weights file not found at {coco_weights_path}")
+            print("Please download mask_rcnn_coco.h5 and place it in the project directory")
+            print("Download from: https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5")
+    else:
+        print(f'Loading COCO weights from {coco_weights_path}...')
+        model.load_weights(coco_weights_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+        print('COCO weights loaded')
 
 print('Starting model training...')
 # train weights (output layers or 'heads')
