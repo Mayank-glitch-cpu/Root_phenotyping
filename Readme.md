@@ -177,7 +177,7 @@ This will:
 
 **⚠️ Important**: Training requires significant computational resources:
 - **GPU**: Highly recommended (NVIDIA GPU with at least 8 GB VRAM)
-- **Time**: 6-12 hours with GPU, 2-3 days on CPU
+- **Time**: 3-4 hours with GPU, 2-3 days on CPU
 - **Disk**: ~10 GB for dataset and logs
 
 #### Using Manual Setup:
